@@ -1,26 +1,26 @@
 class Zunel < Formula
   desc "Personal AI assistant: local chat REPL, Slack gateway, and built-in MCP servers"
   homepage "https://github.com/zunel-bot/homebrew-tap"
-  version "1.1.4"
+  version "1.1.5"
   license "MIT"
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/zunel-bot/homebrew-tap/releases/download/v1.1.4/zunel_darwin_arm64.zip"
-      sha256 "34c41a8823d5b2b3be79bf7d0c7cd8eb8687e4bee770d58c23eecf3f3e3f0ffb"
+      url "https://github.com/zunel-bot/homebrew-tap/releases/download/v1.1.5/zunel_darwin_arm64.zip"
+      sha256 "84130e8df8a712904629edf24efd9ac7f9995efe8cb27d8a713608b2e7131293"
     else
-      url "https://github.com/zunel-bot/homebrew-tap/releases/download/v1.1.4/zunel_darwin_amd64.zip"
-      sha256 "a4d0fef8b8e05692960afaf0936767b6fe24162efd958f15782cb10efc1c6a5a"
+      url "https://github.com/zunel-bot/homebrew-tap/releases/download/v1.1.5/zunel_darwin_amd64.zip"
+      sha256 "f16bb629d5b4d6b65d68f9c135603ed210efaa5bcf0f91a2fa7fa1ecd52699e5"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
-      url "https://github.com/zunel-bot/homebrew-tap/releases/download/v1.1.4/zunel_linux_arm64.tar.gz"
-      sha256 "6fa6daa9152bf93ad36a30dc1af690acb2837c9a7bbcf0ab494db1bd93adfc22"
+      url "https://github.com/zunel-bot/homebrew-tap/releases/download/v1.1.5/zunel_linux_arm64.tar.gz"
+      sha256 "ab9f89dc236f5f250dfcda965745c0b475878467b25a8e20875283dab929600e"
     else
-      url "https://github.com/zunel-bot/homebrew-tap/releases/download/v1.1.4/zunel_linux_amd64.tar.gz"
-      sha256 "fb5ce69653b70ee9179f50157379f4fd2557ade6dd2cc9c7fb95562fa12b2a2d"
+      url "https://github.com/zunel-bot/homebrew-tap/releases/download/v1.1.5/zunel_linux_amd64.tar.gz"
+      sha256 "c187794f121e1e35efdf3ada4af62cf5e9ea2fc9eeff0c929cf2f9ac1febc36d"
     end
   end
 
