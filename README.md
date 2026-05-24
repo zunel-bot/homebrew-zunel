@@ -1,4 +1,4 @@
-# zunel-bot/homebrew-tap
+# zunel-bot/homebrew-zunel
 
 Homebrew tap and pre-built binary host for [`zunel`](https://github.com/zunel-bot/zunel),
 a personal AI assistant that ships as a single binary and provides:
@@ -13,7 +13,7 @@ a personal AI assistant that ships as a single binary and provides:
 This repo serves two purposes:
 
 - **Homebrew tap.** `Formula/zunel.rb` is auto-bumped by the release
-  pipeline on every stable tag, so `brew tap zunel-bot/tap && brew
+  pipeline on every stable tag, so `brew tap zunel-bot/zunel && brew
   install zunel` Just Works.
 - **Public binary host.** Per-arch tarballs and `.deb` packages for
   every release are uploaded as GitHub Release assets on this repo.
@@ -30,7 +30,7 @@ No source code lives here; the source is maintained at
 ### macOS / Linux — Homebrew (recommended)
 
 ```bash
-brew tap zunel-bot/tap
+brew tap zunel-bot/zunel
 brew install zunel
 ```
 
@@ -38,10 +38,10 @@ brew install zunel
 
 ```bash
 ARCH=$(dpkg --print-architecture)               # amd64 or arm64
-TAG=$(curl -sL https://api.github.com/repos/zunel-bot/homebrew-tap/releases/latest \
+TAG=$(curl -sL https://api.github.com/repos/zunel-bot/homebrew-zunel/releases/latest \
         | grep -o '"tag_name":[^,]*' | head -n1 | cut -d'"' -f4)
 curl -fsSL -o /tmp/zunel.deb \
-  "https://github.com/zunel-bot/homebrew-tap/releases/download/${TAG}/zunel-${ARCH}.deb"
+  "https://github.com/zunel-bot/homebrew-zunel/releases/download/${TAG}/zunel-${ARCH}.deb"
 sudo dpkg -i /tmp/zunel.deb
 ```
 
@@ -51,7 +51,7 @@ musl + rustls, so there's no `libssl` / `libc` version coupling.
 
 ### Direct download
 
-Browse [Releases](https://github.com/zunel-bot/homebrew-tap/releases)
+Browse [Releases](https://github.com/zunel-bot/homebrew-zunel/releases)
 for raw tarballs:
 
 | Triple                       | Audience                  |
@@ -195,9 +195,9 @@ If you installed via Homebrew on macOS, the formula registers a
 `brew services` job so you can also run it as a background service:
 
 ```bash
-brew services start zunel-bot/tap/zunel
-brew services restart zunel-bot/tap/zunel
-brew services stop zunel-bot/tap/zunel
+brew services start zunel-bot/zunel/zunel
+brew services restart zunel-bot/zunel/zunel
+brew services stop zunel-bot/zunel/zunel
 ```
 
 Logs land at:
@@ -284,9 +284,9 @@ brew upgrade zunel
 
 ```bash
 # Homebrew
-brew services stop zunel-bot/tap/zunel 2>/dev/null || true
+brew services stop zunel-bot/zunel/zunel 2>/dev/null || true
 brew uninstall zunel
-brew untap zunel-bot/tap   # optional
+brew untap zunel-bot/zunel   # optional
 
 # .deb
 sudo dpkg -r zunel
