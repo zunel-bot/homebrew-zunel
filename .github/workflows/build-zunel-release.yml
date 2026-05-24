@@ -1,0 +1,389 @@
+name: Build zunel release
+
+# Runs in this public repo so Actions minutes are unlimited and free.
+# Pulls zunel source from the private repo at the dispatched tag and
+# runs zunel's own release scripts to build, sign, notarize, and publish.
+#
+# Triggers:
+#   - repository_dispatch (event_type: zunel-release; payload.tag = vX.Y.Z)
+#     fired by zunel-bot/zunel/.github/workflows/dispatch-release.yaml on tag push
+#   - workflow_dispatch with `tag` input -- manual re-release
+#
+# Required secrets on this repo:
+#   - ZUNEL_PRIVATE_READ_TOKEN: PAT with `Contents: Read` on zunel-bot/zunel
+#                               (used to clone the private source at the tag).
+#   - APPLE_DEVELOPER_ID_CERT_P12_BASE64, APPLE_DEVELOPER_ID_CERT_PASSWORD,
+#     APPLE_DEVELOPER_ID_IDENTITY, APPLE_ID, APPLE_TEAM_ID,
+#     APPLE_APP_SPECIFIC_PASSWORD: for macOS Developer ID signing+notarization.
+#     If any are unset, the workflow falls back to ad-hoc signing.
+#   - APT_REPO_GPG_PRIVATE_KEY, APT_REPO_GPG_PASSPHRASE: optional, for the
+#     signed APT repository under `apt/` in this repo. Skipped if unset.
+
+on:
+  repository_dispatch:
+    types: [zunel-release]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "zunel tag to build (e.g. v1.1.2)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+  TAG: ${{ github.event.inputs.tag || github.event.client_payload.tag }}
+
+jobs:
+  build:
+    name: Build ${{ matrix.os_label }}/${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os_label: linux
+            arch: amd64
+            target: x86_64-unknown-linux-gnu
+            runner: ubuntu-latest
+            ext: tar.gz
+          - os_label: linux
+            arch: arm64
+            target: aarch64-unknown-linux-gnu
+            runner: ubuntu-latest
+            ext: tar.gz
+          - os_label: linux-musl
+            arch: amd64
+            target: x86_64-unknown-linux-musl
+            runner: ubuntu-latest
+            ext: tar.gz
+          - os_label: darwin
+            arch: amd64
+            target: x86_64-apple-darwin
+            runner: macos-14
+            ext: zip
+          - os_label: darwin
+            arch: arm64
+            target: aarch64-apple-darwin
+            runner: macos-14
+            ext: zip
+          - os_label: windows
+            arch: amd64
+            target: x86_64-pc-windows-msvc
+            runner: windows-latest
+            ext: zip
+    steps:
+      - name: Checkout zunel source at tag
+        uses: actions/checkout@v4
+        with:
+          repository: zunel-bot/zunel
+          ref: ${{ env.TAG }}
+          token: ${{ secrets.ZUNEL_PRIVATE_READ_TOKEN }}
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: ver
+        shell: bash
+        run: |
+          tag='${{ env.TAG }}'
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
+      # zunel's workspace pins a specific toolchain in rust/rust-toolchain.toml.
+      - name: Sync Rust toolchain to project pin
+        working-directory: rust
+        shell: bash
+        run: |
+          rustup show active-toolchain || rustup show
+          rustup target add ${{ matrix.target }}
+
+      - name: Install cross compilation toolchain (linux-aarch64)
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> "$GITHUB_ENV"
+
+      - name: Install musl tools
+        if: matrix.target == 'x86_64-unknown-linux-musl'
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
+      - name: Cache cargo registry & target
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+          key: zunel-release-${{ matrix.target }}
+
+      - name: Build release binary
+        working-directory: rust
+        run: cargo build --release --locked --target ${{ matrix.target }} -p zunel-cli
+
+      - name: Sign and notarize (macOS)
+        if: startsWith(matrix.target, 'x86_64-apple') || startsWith(matrix.target, 'aarch64-apple')
+        env:
+          APPLE_DEVELOPER_ID_CERT_P12_BASE64: ${{ secrets.APPLE_DEVELOPER_ID_CERT_P12_BASE64 }}
+          APPLE_DEVELOPER_ID_CERT_PASSWORD: ${{ secrets.APPLE_DEVELOPER_ID_CERT_PASSWORD }}
+          APPLE_DEVELOPER_ID_IDENTITY: ${{ secrets.APPLE_DEVELOPER_ID_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          BINARY="rust/target/${{ matrix.target }}/release/zunel"
+          if [[ -z "${APPLE_DEVELOPER_ID_CERT_P12_BASE64:-}" \
+             || -z "${APPLE_DEVELOPER_ID_CERT_PASSWORD:-}" \
+             || -z "${APPLE_DEVELOPER_ID_IDENTITY:-}" ]]; then
+            echo "Apple Developer ID secrets not set -- ad-hoc signing only."
+            scripts/macos/sign.sh "${BINARY}"
+            exit 0
+          fi
+          KEYCHAIN_PATH="${RUNNER_TEMP}/zunel-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
+          P12_PATH="${RUNNER_TEMP}/cert.p12"
+          echo "${APPLE_DEVELOPER_ID_CERT_P12_BASE64}" | base64 --decode > "${P12_PATH}"
+          security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+          security set-keychain-settings -lut 21600 "${KEYCHAIN_PATH}"
+          security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+          security import "${P12_PATH}" \
+            -P "${APPLE_DEVELOPER_ID_CERT_PASSWORD}" \
+            -A -t cert -f pkcs12 -k "${KEYCHAIN_PATH}"
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s -k "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}" >/dev/null
+          security list-keychains -d user -s "${KEYCHAIN_PATH}" \
+            $(security list-keychains -d user | sed 's/"//g')
+          ZUNEL_SIGNING_IDENTITY="${APPLE_DEVELOPER_ID_IDENTITY}" \
+            scripts/macos/sign.sh "${BINARY}"
+          scripts/macos/notarize.sh "${BINARY}"
+          security delete-keychain "${KEYCHAIN_PATH}" || true
+          rm -f "${P12_PATH}"
+
+      - name: Stage archive (unix)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          version='${{ steps.ver.outputs.version }}'
+          name="zunel_${version}_${{ matrix.os_label }}_${{ matrix.arch }}"
+          stage="$(mktemp -d)/${name}"
+          mkdir -p "${stage}"
+          cp "rust/target/${{ matrix.target }}/release/zunel" "${stage}/zunel"
+          cp README.md LICENSE "${stage}/"
+          mkdir -p dist
+          if [[ '${{ matrix.ext }}' == 'tar.gz' ]]; then
+            tar -czf "dist/${name}.tar.gz" -C "$(dirname "${stage}")" "${name}"
+          else
+            ( cd "$(dirname "${stage}")" && /usr/bin/zip -q -r "${OLDPWD}/dist/${name}.zip" "${name}" )
+          fi
+
+      - name: Stage archive (windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = '${{ steps.ver.outputs.version }}'
+          $name = "zunel_${version}_windows_amd64"
+          $stage = Join-Path ([System.IO.Path]::GetTempPath()) $name
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Copy-Item "rust/target/${{ matrix.target }}/release/zunel.exe" (Join-Path $stage "zunel.exe")
+          Copy-Item README.md (Join-Path $stage "README.md")
+          Copy-Item LICENSE (Join-Path $stage "LICENSE")
+          New-Item -ItemType Directory -Force -Path "dist" | Out-Null
+          Compress-Archive -Path (Join-Path $stage "*") -DestinationPath "dist/${name}.zip"
+
+      - name: Upload archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: zunel-${{ matrix.os_label }}-${{ matrix.arch }}
+          path: dist/
+
+  deb:
+    name: Debian package (${{ matrix.arch }})
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            target: x86_64-unknown-linux-gnu
+          - arch: arm64
+            target: aarch64-unknown-linux-gnu
+    steps:
+      - name: Checkout zunel source at tag
+        uses: actions/checkout@v4
+        with:
+          repository: zunel-bot/zunel
+          ref: ${{ env.TAG }}
+          token: ${{ secrets.ZUNEL_PRIVATE_READ_TOKEN }}
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: ver
+        run: |
+          tag='${{ env.TAG }}'
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Sync Rust toolchain to project pin
+        working-directory: rust
+        shell: bash
+        run: |
+          rustup show active-toolchain || rustup show
+          rustup target add ${{ matrix.target }}
+
+      - name: Install cross compilation toolchain (arm64)
+        if: matrix.arch == 'arm64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> "$GITHUB_ENV"
+
+      - name: Cache cargo registry & target
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+          key: zunel-deb-${{ matrix.arch }}
+
+      - name: Install cargo-deb
+        run: cargo install cargo-deb --locked --version 3.4.0
+
+      - name: Build release binary
+        working-directory: rust
+        run: cargo build --release --locked --target ${{ matrix.target }} -p zunel-cli
+
+      - name: Build .deb
+        working-directory: rust
+        run: |
+          cargo deb -p zunel-cli --no-build --target ${{ matrix.target }} \
+            --deb-version '${{ steps.ver.outputs.version }}' \
+            --output ../dist/
+
+      - name: Normalise .deb name
+        run: |
+          set -euo pipefail
+          version='${{ steps.ver.outputs.version }}'
+          shopt -s nullglob
+          for src in dist/zunel*.deb; do
+            target="dist/zunel_${version}_${{ matrix.arch }}.deb"
+            if [[ "${src}" != "${target}" ]]; then
+              mv "${src}" "${target}"
+            fi
+          done
+          ls -la dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: zunel-deb-${{ matrix.arch }}
+          path: dist/*.deb
+
+  publish:
+    name: Publish release + tap + apt
+    needs: [build, deb]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout homebrew-zunel (this repo, write access)
+        uses: actions/checkout@v4
+        with:
+          path: homebrew-zunel
+          fetch-depth: 0
+
+      - name: Checkout zunel source at tag (for scripts/release/* helpers)
+        uses: actions/checkout@v4
+        with:
+          repository: zunel-bot/zunel
+          ref: ${{ env.TAG }}
+          token: ${{ secrets.ZUNEL_PRIVATE_READ_TOKEN }}
+          path: zunel
+          fetch-depth: 0
+
+      - name: Download all archives
+        uses: actions/download-artifact@v4
+        with:
+          pattern: zunel-*
+          merge-multiple: true
+          path: dist/
+
+      - name: Generate checksums
+        run: |
+          set -euo pipefail
+          cd dist
+          shopt -s nullglob
+          shasum -a 256 zunel_*.tar.gz zunel_*.zip zunel_*.deb > checksums.txt
+          cat checksums.txt
+
+      - name: Render Homebrew formula
+        working-directory: zunel
+        env:
+          DIST_DIR: ${{ github.workspace }}/dist
+        run: |
+          mkdir -p '${{ github.workspace }}/dist/homebrew'
+          bash scripts/release/render-homebrew-formula.sh \
+            '${{ env.TAG }}' \
+            'zunel-bot/zunel' \
+            > '${{ github.workspace }}/dist/homebrew/zunel.rb'
+
+      - name: Render release notes
+        working-directory: zunel
+        run: |
+          bash scripts/release/render-release-notes.sh '${{ env.TAG }}' \
+            > '${{ github.workspace }}/dist/CHANGELOG.md'
+
+      - name: Install APT repo tooling
+        run: sudo apt-get update && sudo apt-get install -y apt-utils gnupg
+
+      - name: Publish GitHub release on the tap
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          REL_TAG="${{ env.TAG }}"
+          if gh release view "${REL_TAG}" --repo zunel-bot/homebrew-zunel >/dev/null 2>&1; then
+            gh release upload "${REL_TAG}" --repo zunel-bot/homebrew-zunel \
+              dist/checksums.txt \
+              dist/zunel_*.tar.gz dist/zunel_*.zip dist/zunel_*.deb \
+              --clobber
+            gh release edit "${REL_TAG}" --repo zunel-bot/homebrew-zunel \
+              --title "zunel ${{ env.TAG }}" \
+              --notes-file dist/CHANGELOG.md \
+              --latest=true
+          else
+            gh release create "${REL_TAG}" --repo zunel-bot/homebrew-zunel \
+              dist/checksums.txt \
+              dist/zunel_*.tar.gz dist/zunel_*.zip dist/zunel_*.deb \
+              --title "zunel ${{ env.TAG }}" \
+              --notes-file dist/CHANGELOG.md \
+              --latest=true
+          fi
+
+      - name: Update tap Formula/zunel.rb
+        working-directory: zunel
+        env:
+          RELEASE_TAG: ${{ env.TAG }}
+          SOURCE_REPO: zunel-bot/zunel
+          TAP_REPO: zunel-bot/homebrew-zunel
+          TAP_DIR: ${{ github.workspace }}/homebrew-zunel
+          DIST_DIR: ${{ github.workspace }}/dist
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash scripts/release/publish-homebrew-zunel.sh
+
+      - name: Update APT repo
+        working-directory: zunel
+        env:
+          RELEASE_TAG: ${{ env.TAG }}
+          TAP_REPO: zunel-bot/homebrew-zunel
+          TAP_DIR: ${{ github.workspace }}/homebrew-zunel
+          DIST_DIR: ${{ github.workspace }}/dist
+          APT_REPO_GPG_PRIVATE_KEY: ${{ secrets.APT_REPO_GPG_PRIVATE_KEY }}
+          APT_REPO_GPG_PASSPHRASE: ${{ secrets.APT_REPO_GPG_PASSPHRASE }}
+        run: |
+          if [[ -n "${APT_REPO_GPG_PRIVATE_KEY:-}" && -n "${APT_REPO_GPG_PASSPHRASE:-}" ]]; then
+            bash scripts/release/publish-apt-repo.sh
+          else
+            echo "APT_REPO_GPG_* secrets not set; skipping APT publish."
+          fi
