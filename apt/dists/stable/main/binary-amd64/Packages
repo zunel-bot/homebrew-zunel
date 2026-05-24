@@ -1,0 +1,25 @@
+Package: zunel
+Architecture: amd64
+Version: 1.1.8
+Priority: optional
+Section: utility
+Maintainer: Zunel Bot <zunel-bot@users.noreply.github.com>
+Installed-Size: 25183
+Depends: libc6 (>= 2.39)
+Recommends: ca-certificates
+Filename: pool/main/z/zunel/zunel_1.1.8_amd64.deb
+Size: 6629376
+MD5sum: 6497201ab7c620617f2754bec779f361
+SHA1: e5fdd7c29b8ef3474a89a3f96c5d6e1206324c28
+SHA256: a1a60458dfd9b015bb1f6e97278070589e0299046ff95f0c5f9198add3aea4fd
+SHA512: eb8422d56eecf739e6d95107bd5dd291873eb7c7e9ed41c05869245fe6dec1785c452e7c1c969d5d9922c5c6c2cf984bb8183e81f2ce6d90b33b0a58bad26570
+Homepage: https://github.com/zunel-bot/homebrew-zunel
+Description: CLI and Slack gateway for the Zunel personal AI assistant.
+ Zunel is a single-binary personal AI assistant: a local chat REPL
+ (`zunel agent`), a Slack gateway (`zunel gateway`), and a set of
+ built-in MCP servers (`zunel mcp serve --server self|slack`). State
+ lives under `~/.zunel/` and is created on first run via
+ `zunel onboard`. The Codex provider depends on a separately-installed
+ `codex` CLI; the OpenAI-compatible and Bedrock providers have no
+ additional install steps.
+

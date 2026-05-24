@@ -1,0 +1,51 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+Architectures: amd64 arm64
+Codename: stable
+Components: main
+Date: Sun, 24 May 2026 14:58:11 +0000
+Description: zunel apt repository
+Label: zunel
+Origin: zunel
+Suite: stable
+MD5Sum:
+ 3efd04de83c8d61a6c62af9a9615ca66              174 Release
+ 9f792871b577a41c4e884d8f15fe8335             1132 main/binary-amd64/Packages
+ 73c3ea717d4f41fa99799bc25e9ba3f4              755 main/binary-amd64/Packages.gz
+ 6f259ea601558e03bbf960c7fa99aa39             1116 main/binary-arm64/Packages
+ fbda461661c47a4589dffbf224f9157c              741 main/binary-arm64/Packages.gz
+SHA1:
+ f2752ca5f467ecafbae431088a3bb28081ac6f3a              174 Release
+ 4322a9b400322d34b67e80d4fc078c2fa18a88be             1132 main/binary-amd64/Packages
+ 79ee76c0f43153d26b7fe99fc075fc5cc50bbabf              755 main/binary-amd64/Packages.gz
+ ab04396fcdddf2305d5bc736f58f0402a0700f0a             1116 main/binary-arm64/Packages
+ 4b92701a218563af02ac93e98184f6902cd1d44f              741 main/binary-arm64/Packages.gz
+SHA256:
+ 338d7d3a4c4bb0945489aca4e34448b34fc5968d1c47ab1f680cb1b21c0026c8              174 Release
+ a46d36f8de25e2bc49fdd34c9e570556b5c331b7b7373480d5d0e5a24bd3f3a4             1132 main/binary-amd64/Packages
+ a89cc3f2019f8cf88cbd502ae60a3b22f1b458dd91ec627515a5aaf95a14dabc              755 main/binary-amd64/Packages.gz
+ 61cd598d066266142ba906f96e8531d0e037d1e6e843c4fe45abb31ed749871e             1116 main/binary-arm64/Packages
+ d43dc71130e23d0afe36eb90875cdb4054e3de16b08bbd7ed2f2457f9cce5352              741 main/binary-arm64/Packages.gz
+SHA512:
+ f05c35211ffcd372fb98281e0d25fa6c59f027f6b1fc588c4f42a7476c77e6f92e0f5b2e3b0ed48362702f08026f82fb2e48557617fc7d8bc2fb688735505aaa              174 Release
+ 8cf46549fdcf64991edbfa9df7090e03825f11b12ab5f5dd08f81cbcd84e4cfb329838510155a77deca641ee22731d47eebf0176e66871124e62915fe539332c             1132 main/binary-amd64/Packages
+ 32497687d48b4920cb5a1f2c780f90589c316eddf7c0acdebea22052eb6d181948877e4ad2d7d11ffdc1912c5ac468a60987d54da964ae3675055d8d0682290b              755 main/binary-amd64/Packages.gz
+ 12c0e0f33eaa0f2bfd9bd1bbb681bccc08463948532e8b3a481924a399fbc1695bce1a53123df998b6f4acf441a4faaf434fba7879e5205a8ee687b6b7b17fab             1116 main/binary-arm64/Packages
+ b67e6aba6e3153f44f04a05981adfd5c8d6320aabca5a711ae7efa18eabae233ed4f5e0a4bc224b0142fcd09b083fbf8105285e8f3849c5d1d1e113f7fbc8f97              741 main/binary-arm64/Packages.gz
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAEBCgAdFiEEWFW4SES1FdL/axmmttziwkgtOvEFAmoTEgMACgkQttziwkgt
+OvFlug//T+slxVjQfqT3DQDKWt4IbmXAJhUFBjpEYcOrSzjhxp7cYd/M8ngakKaP
+unY5mVJhwYDBb1dilnhUwaFEDBM+e1FBpwT9wrRgfzSt+cIf8oZSSwVmQy3ETT6D
+UmSNHzovZ9ZVG0giXCU+5El+3XeOpkZ7yaraBkN1OFBEjDgtlpxlq/qrrwrHL595
+b3vQkbfhhVa4Mj72Aj8XcbpcEycX6Sa5yjKfhaC5SVP25oGZDB0Vfm1idi3JRKCE
+oxbqbYyx7rB8I5ZZ2qe7d/C4/k9I3WSOccJZhTLJloNeiJSbbVBg9xX/x3PlvZep
+dHH8Tqyvk+W8ryKKRc8KS4bIfjskA7p7tjPORRe/5ZvQ3XvasjwX+2s7SSa2SIYd
+DBPU0T8Tc4MTXaUxSkhDvoXRVD6ixZBq6I/n3FhjZKtGZhry31hpS2AG/1GMKvL+
+ve1j5G2FxsIc5fGCAzsvb7mVXWt1XDtbeD3ERjQS1Te/2FVeGHZ9bUTacbkaQ/Yc
+540nNmA+0xUsUbUq8Siol2kfRTWYR3h9MEF/1bNdLvrY9PZLLn0a9+cnoqg/OgZV
+I2Pz2SmJ0upqUBFAJJ327gx9nBBRSvaGh7747ZQgsLUhz+TCLYCZNzmKOlNIJpG4
+uBSyKhqHqlyShAIyVEcVP90COqnYpl9ek04UoSnx7+8pweTDgw0=
+=pX1G
+-----END PGP SIGNATURE-----
