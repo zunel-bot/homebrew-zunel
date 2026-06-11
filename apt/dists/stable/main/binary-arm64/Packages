@@ -1,18 +1,18 @@
 Package: zunel
 Architecture: arm64
-Version: 1.1.16
+Version: 1.1.17
 Priority: optional
 Section: utility
 Maintainer: Zunel Bot <zunel-bot@users.noreply.github.com>
 Installed-Size: 22028
 Depends:
 Recommends: ca-certificates
-Filename: pool/main/z/zunel/zunel_1.1.16_arm64.deb
-Size: 6027340
-MD5sum: fbbf263a451e8969d99f61a6b1660c6d
-SHA1: 4cc35deed814a3ecba732a5c5aed14333eca52cf
-SHA256: 0ba30d53ff0e29a8c53f794f85efb7e2ab858c94ab82e4d0bdfc20156acfca1a
-SHA512: f54d6b645e3c76710aaa3e3c78fa90dc3637587452c8bb53e7ab3443f174245f4bf9cde82c9bfcc199900deb4e1c87a436e7e16859a37fc4307b16bb071dfb88
+Filename: pool/main/z/zunel/zunel_1.1.17_arm64.deb
+Size: 6026140
+MD5sum: 91bfe688560aa624f0ba014bba3d15e7
+SHA1: 8101ba5d499faa3d3bfe85ad06456dc40dfc0d7b
+SHA256: 7e3606fc119b1e219b8f11768860c43e4d78d4f2f864ebb5e53a2336e16e23ee
+SHA512: b5ff69aad8dd8f37442a4d7dfefccb7c058e225dc7780285b02343b66d27d544920e945de91d63acfa95e999cf7ba348c13775847f1b2e1c0c826a4a3ff228b8
 Homepage: https://github.com/zunel-bot/homebrew-zunel
 Description: CLI and Slack gateway for the Zunel personal AI assistant.
  Zunel is a single-binary personal AI assistant: a local chat REPL
